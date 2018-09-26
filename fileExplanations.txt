@@ -1,0 +1,99 @@
+TO PERFORM A SCREEN (assuming all appropriate documents have been moved and prepared)
+1. Type './SubmitJob.sh CONFIG OUPUT.csv'
+     (without quotes, and with the name of the config where it says CONFIG, for example:
+     sbatch SubmitJob.sh myconfig.txt myoutput.csv
+2. Wait ~8 hours
+3. Your final results should be in a file named whatever you put for OUTPUT.csv
+4. Move any desired documents into a folder
+     -- NOTE -- Some should now be auto-moved into the TOP100 folder
+5. Delete any extra files that clutter up the shared folders 
+     Files like *set*.csv, slurm*, temp.csv
+
+TO PERFORM A SCREEN OF THE NATURAL PRODUCT LIBRARY (almost same as above)
+Using NPSubmitJob.sh should mean all molecules used are natural products.
+Using SupplementedNPSubmitJob will include molecules that are derived from natural products
+1. Type './NPSubmitJob.sh CONFIG OUTPUT.csv'
+2. Wait 
+3. Final results should be in a file named whatever you put for OUTPUT.csv
+   Note that the first time we do this, the file won't be made.
+   Need to create a NPListOfOutputFiles first
+4. Move any desired documents into a folder
+5. Delete any extra files that clutter up the shared folders
+
+
+~~~~~~ EXPLANATION OF FILES, ORGANIZATION, ETC ~~~~~~~
+This is a general explanation of what the different files here are for, and
+a broad idea of how they work. I will attempt to list them in the order in which
+they are executed during a screen, though some exceptions might exist.
+
+For reference, folders are normally blue, scripts are normally green. Usually...
+
+SubmitJob.sh and NPSubmitJob.sh
+ These are the scripts for beginning a screen (NP launches a screen of the natural product
+ library). These scripts launch a number of simultaneous jobs from the supercomputer, and each job
+ is responsible for doing a portion of the library.
+ After all jobs are complete, it launches the PrepOutput.sh script, followed by the collectHits.sh script
+ To use:
+ ./SubmitJobs.sh CONFIG
+ ./NPSubmitJobs.sh CONFIG
+
+ JobScript.sh and NPJobScript.sh
+ These are the first things called by the SubmitJob.sh and NPSubmitJob.sh scripts, respectively. This
+ is run by each individual job on the supercomputer, contains info about which part of the library
+ to screen, and requests specified amounts of resources from the supercomputer. These scripts start 
+ the PerformScreen.py script. If you ever find that jobs are being cancelled because they run out
+ of time, these are the files that say how much time is being requested.
+ To use:
+ This will (likely) never be started by the user, but rather, called by SubmitJob.sh or NPSubmitJob.sh
+ sbatch JobScript.sh X
+ sbatch NPJobScript.sh X
+ Where sbatch tells it to run on the supercomputer, and X refers to the group of the library to dock
+
+ PerformScreen.py
+ The heart of the screen, this is called by both SubmitJob.sh and NPSubmitJob. It iterates through
+ a specified section of the library, jumping around and docking different molecules. It is run once
+ for each group of the library, and each instance of the script typically finishes in ~3 hours, 
+ depending on different factors. Each instance produces an output.csv file of the molecules it 
+ docked.
+ To use:
+ This will (likely) never be started by the user, but rather, called by JobScript.sh or NPJobScript.sh
+ python PerformScreen.py GROUPNUMBER OUTFILE.csv CONFIG.csv
+
+ PrepOutput.sh
+ This is started by SubmitJob.sh and NPSubmitJob.sh after all screening is done. It creates a list of
+ all of the sorted*.csv files that were created during the screen, and then gives that list to 
+ combineOutput.py so that it can combine all of the files into one large file. The large file will
+ be named based on whatever the original specified output file was in SubmitJob.sh/NPSubmitJob.sh
+
+ combineOutput.py
+ Started by PrepOutput.sh, it takes a list of csv files and combines them into a single csv file.
+
+ collectHits.sh
+ Called by SubmitJob.sh and NPSubmitJob.sh after everything else is done. It starts collectHits.py,
+ and after that is done, it runs cleanup.sh.
+
+ collectHits.py
+ Started by collectHits.sh, this takes the top hits from the screen and moves them into the TOP100
+ and 101_200 folders for easy access (this is important, because those files can be moved to the local
+ computer, and then used to select molecules for ordering). 
+
+ cleanup.sh
+ This script cleans up the directory of unnecessary files produced during the screening process. Specifically,
+ it deletes all intermediate csv files and all output/log files produced by vina. The user may want to 
+ view the output confirmations of molecules, but they take up a ton of storage space so deleting tham all
+ instead is probably better for storage purposes. I would recommend they dock that specific molecule on the 
+ local computer so they can see it, if they want. That also gives everyone a bit more hands-on experience
+ with docking. 
+ This file can be run by typing './cleanup.sh' without quotes, if you ever need to tidy things up.
+
+
+
+Expanding the library
+Move all pdbqt files from local computer to groups/ folder
+Enter following command from main directory:
+./expandLibrary.sh X
+where X is the next group number that should be created (ie, the highest group number in the groups folder + 1)
+Some errors will probably pop up, but that's fine. 
+
+Expanding the NP library
+This hasn't been automated yet..
